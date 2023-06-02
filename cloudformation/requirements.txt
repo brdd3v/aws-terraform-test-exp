@@ -1,0 +1,3 @@
+cfn-lint==0.75.1
+pytest==7.2.2
+troposphere==4.3.2
