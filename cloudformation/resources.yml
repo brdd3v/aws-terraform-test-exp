@@ -1,9 +1,9 @@
 AWSTemplateFormatVersion: 2010-09-09
 Parameters:
-  BucketName:
+  ParamBucketName:
     Type: String
     Default: bucket-abc-xyz-exp-3
-  FunctionName:
+  ParamFunctionName:
     Type: String
     Default: lambda-func-exp-3
 
@@ -13,7 +13,7 @@ Resources:
     DependsOn:
       - LambdaPermission
     Properties:
-      BucketName: !Ref BucketName
+      BucketName: !Ref ParamBucketName
       NotificationConfiguration:
         LambdaConfigurations:
           - Event: s3:ObjectCreated:*
@@ -30,7 +30,7 @@ Resources:
       FunctionName: !Ref LambdaFunction
       Action: 'lambda:InvokeFunction'
       Principal: s3.amazonaws.com
-      SourceArn: !Sub 'arn:aws:s3:::${BucketName}'
+      SourceArn: !Sub 'arn:aws:s3:::${ParamBucketName}'
 
   LambdaIAMRole:
     Type: AWS::IAM::Role
@@ -45,7 +45,7 @@ Resources:
                 - lambda.amazonaws.com
             Action:
               - sts:AssumeRole
-      Policies: 
+      Policies:
         - PolicyName: "lambda_logging-exp-3"
           PolicyDocument:
             Version: "2012-10-17"
@@ -63,7 +63,7 @@ Resources:
               - Effect: Allow
                 Action:
                   - s3:GetObject
-                Resource: !Sub 'arn:aws:s3:::${BucketName}/*'
+                Resource: !Sub 'arn:aws:s3:::${ParamBucketName}/*'
       Tags:
         - Key: Env
           Value: Dev
@@ -73,7 +73,7 @@ Resources:
   LambdaFunction:
     Type: AWS::Lambda::Function
     Properties:
-      FunctionName: !Ref FunctionName
+      FunctionName: !Ref ParamFunctionName
       Runtime: python3.9
       Role: !GetAtt LambdaIAMRole.Arn
       Handler: index.lambda_handler
@@ -112,7 +112,7 @@ Resources:
   LogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub '/aws/lambda/${FunctionName}'
+      LogGroupName: !Sub '/aws/lambda/${ParamFunctionName}'
       RetentionInDays: 14
       Tags:
         - Key: Env
