@@ -6,6 +6,6 @@ install:
 lint:
 	cfn-lint -t resources.yml
 
-# test:
-# 	python3 -m pytest -vv tests/
+test:
+	python3 -m pytest -vv test_template_gen.py
 

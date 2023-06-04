@@ -5,12 +5,6 @@ from troposphere.iam import Role, Policy
 from troposphere.logs import LogGroup
 
 
-tags = Tags(Env="Dev", Owner="AWSCF")
-
-t = Template()
-t.set_version("2010-09-09")
-
-
 code = """import boto3
 
 
@@ -38,113 +32,127 @@ def lambda_handler(event, context):
 """
 
 
-ParamBucketName = t.add_parameter(
-    Parameter("ParamBucketName", Type="String", Default="bucket-abc-xyz-exp-3")
-)
+def main():
+    tags = Tags(Env="Dev", Owner="AWSCF")
 
-ParamFunctionName = t.add_parameter(
-    Parameter("ParamFunctionName", Type="String", Default="lambda-func-exp-3")
-)
+    t = Template()
+    t.set_version("2010-09-09")
 
 
-lambda_iam_role = t.add_resource(
-    Role(
-        "LambdaIAMRole",
-        RoleName="iam_for_lambda-exp-3",
-        AssumeRolePolicyDocument={
-            "Version": "2012-10-17",
-            "Statement": [
-                {
-                    "Action": ["sts:AssumeRole"],
-                    "Effect": "Allow",
-                    "Principal": {"Service": ["lambda.amazonaws.com"]},
-                }
-            ]
-        },
-        Policies=[
-            Policy(
-                PolicyName="lambda_logging-exp-3",
-                PolicyDocument={
-                    "Version": "2012-10-17",
-                    "Statement": [
-                        {
-                            "Action": [
-                                "logs:CreateLogGroup",
-                                "logs:CreateLogStream",
-                                "logs:PutLogEvents"
-                            ],
-                            "Effect": "Allow",
-                            "Resource": "arn:aws:logs:*:*:*"
-                        }
-                    ]
-                }
-            ),
-            Policy(
-                PolicyName="lambda_s3-exp-3",
-                PolicyDocument={
-                    "Version": "2012-10-17",
-                    "Statement": [
-                        {
-                            "Action": ["s3:GetObject"],
-                            "Effect": "Allow",
-                            "Resource": Sub('arn:aws:s3:::${ParamBucketName}/*')
-                        }
-                    ]
-                }
-            )
-        ],
-        Tags=tags
+    ParamBucketName = t.add_parameter(
+        Parameter("ParamBucketName", Type="String", Default="bucket-abc-xyz-exp-3")
     )
-)
 
-lambda_func = t.add_resource(
-    Function(
-        "LambdaFunction",
-        FunctionName=Ref(ParamFunctionName),
-        Code=Code(ZipFile=code),
-        Handler="index.lambda_handler",
-        Role=GetAtt(lambda_iam_role, "Arn"),
-        Runtime="python3.9",
-        Tags=tags
+    ParamFunctionName = t.add_parameter(
+        Parameter("ParamFunctionName", Type="String", Default="lambda-func-exp-3")
     )
-)
 
-lambda_permission = t.add_resource(
-    Permission(
-        "LambdaPermission",
-        FunctionName=Ref(lambda_func),
-        Action="lambda:InvokeFunction",
-        Principal="s3.amazonaws.com",
-        SourceArn=Sub('arn:aws:s3:::${ParamBucketName}')
-    )
-)
 
-s3_bucket = t.add_resource(
-    Bucket(
-        "S3Bucket",
-        BucketName=Ref(ParamBucketName),
-        DependsOn=[lambda_permission],
-        NotificationConfiguration=NotificationConfiguration(
-            LambdaConfigurations=[
-                LambdaConfigurations(
-                    Event="s3:ObjectCreated:*",
-                    Function=GetAtt(lambda_func, "Arn")
+    lambda_iam_role = t.add_resource(
+        Role(
+            "LambdaIAMRole",
+            RoleName="iam_for_lambda-exp-3",
+            AssumeRolePolicyDocument={
+                "Version": "2012-10-17",
+                "Statement": [
+                    {
+                        "Action": ["sts:AssumeRole"],
+                        "Effect": "Allow",
+                        "Principal": {"Service": ["lambda.amazonaws.com"]},
+                    }
+                ]
+            },
+            Policies=[
+                Policy(
+                    PolicyName="lambda_logging-exp-3",
+                    PolicyDocument={
+                        "Version": "2012-10-17",
+                        "Statement": [
+                            {
+                                "Action": [
+                                    "logs:CreateLogGroup",
+                                    "logs:CreateLogStream",
+                                    "logs:PutLogEvents"
+                                ],
+                                "Effect": "Allow",
+                                "Resource": "arn:aws:logs:*:*:*"
+                            }
+                        ]
+                    }
+                ),
+                Policy(
+                    PolicyName="lambda_s3-exp-3",
+                    PolicyDocument={
+                        "Version": "2012-10-17",
+                        "Statement": [
+                            {
+                                "Action": ["s3:GetObject"],
+                                "Effect": "Allow",
+                                "Resource": Sub('arn:aws:s3:::${ParamBucketName}/*')
+                            }
+                        ]
+                    }
                 )
-            ]
-        ),
-        Tags=tags
-    )    
-)
-
-log_group = t.add_resource(
-    LogGroup(
-        "LogGroup",
-        LogGroupName=Sub('/aws/lambda/${ParamFunctionName}'),
-        RetentionInDays=14,
-        Tags=tags
+            ],
+            Tags=tags
+        )
     )
-)
+
+    lambda_func = t.add_resource(
+        Function(
+            "LambdaFunction",
+            FunctionName=Ref(ParamFunctionName),
+            Code=Code(ZipFile=code),
+            Handler="index.lambda_handler",
+            Role=GetAtt(lambda_iam_role, "Arn"),
+            Runtime="python3.9",
+            Tags=tags
+        )
+    )
+
+    lambda_permission = t.add_resource(
+        Permission(
+            "LambdaPermission",
+            FunctionName=Ref(lambda_func),
+            Action="lambda:InvokeFunction",
+            Principal="s3.amazonaws.com",
+            SourceArn=Sub('arn:aws:s3:::${ParamBucketName}')
+        )
+    )
+
+    s3_bucket = t.add_resource(
+        Bucket(
+            "S3Bucket",
+            BucketName=Ref(ParamBucketName),
+            DependsOn=[lambda_permission],
+            NotificationConfiguration=NotificationConfiguration(
+                LambdaConfigurations=[
+                    LambdaConfigurations(
+                        Event="s3:ObjectCreated:*",
+                        Function=GetAtt(lambda_func, "Arn")
+                    )
+                ]
+            ),
+            Tags=tags
+        )    
+    )
+
+    log_group = t.add_resource(
+        LogGroup(
+            "LogGroup",
+            LogGroupName=Sub('/aws/lambda/${ParamFunctionName}'),
+            RetentionInDays=14,
+            Tags=tags
+        )
+    )
 
 
-with open("resources_.yml", "w") as f:
-    f.write(t.to_yaml())
+    with open("resources_gen.yml", "w") as f:
+        f.write(t.to_yaml())
+
+    with open("resources_gen.json", "w") as f:
+        f.write(t.to_json())
+
+
+if __name__ == "__main__":
+    main()
