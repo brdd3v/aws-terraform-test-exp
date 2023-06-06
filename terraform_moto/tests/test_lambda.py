@@ -33,8 +33,14 @@ def s3_mock(aws_credentials):
 
 
 @pytest.fixture()
-def sample_event():
+def sample_event_ok():
     with open("tests/events/SampleS3Event.json", "r", encoding="utf-8") as json_file:
+        yield json.load(json_file)
+
+
+@pytest.fixture()
+def sample_event_error():
+    with open("tests/events/SampleS3EventError.json", "r", encoding="utf-8") as json_file:
         yield json.load(json_file)
 
 
@@ -43,6 +49,12 @@ def setup_module(s3_mock):
     lambda_func_module.s3_client = s3_mock
 
 
-def test_lambda(sample_event):
-    test_return_value = lambda_func_module.lambda_handler(event=sample_event, context=None)
+def test_lambda_ok(sample_event_ok):
+    test_return_value = lambda_func_module.lambda_handler(event=sample_event_ok, context=None)
     assert test_return_value == {"status": "OK", "key": "test/key", "content_type": "text/plain"}
+
+
+def test_lambda_error(sample_event_error):
+    # non-existing bucket
+    test_return_value = lambda_func_module.lambda_handler(event=sample_event_error, context=None)
+    assert test_return_value == {"status": "Error", "key": "test/key", "content_type": ""}
