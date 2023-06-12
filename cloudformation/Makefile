@@ -9,3 +9,5 @@ lint:
 test:
 	python3 -m pytest -vv test_template_gen.py
 
+taskcat-test:
+	taskcat test run
