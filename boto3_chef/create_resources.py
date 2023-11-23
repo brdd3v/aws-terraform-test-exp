@@ -139,7 +139,7 @@ def main():
         PolicyArn=policy_s3_resp["Policy"]["Arn"]
     )
 
-    time.sleep(15)  # To get around the error: (InvalidParameterValueException)
+    time.sleep(15)  # To get around the error: (InvalidParameterValueException) \
     # The role defined for the function cannot be assumed by Lambda
 
     lambda_client = boto3.client("lambda")
